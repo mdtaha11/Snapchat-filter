@@ -1,0 +1,73 @@
+import cv2
+import numpy as np
+import dlib
+
+from math import hypot
+
+cap=cv2.VideoCapture(0)
+
+detector=dlib.get_frontal_face_detector()
+predictor=dlib.shape_predictor('C:/Users/Taha/Downloads/shape_predictor_68_face_landmarks.dat')
+
+moo_image=cv2.imread('C:/Users/Taha/Desktop/pig.png')
+
+
+
+while(cap.isOpened()):
+    _,frame=cap.read()
+    frame=cv2.flip(frame,1)
+    gray=cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
+    
+    faces=detector(gray)
+    
+    
+    for face in faces:
+        print(face)
+        x1=face.left()
+        y1=face.top()
+        x2=face.right()
+        y2=face.bottom()
+        #cv2.rectangle(frame,(x1,y1),(x2,y2),(0,255,0),1)
+        
+        landmark=predictor(gray,face)
+        
+        moo_left=(landmark.part(48).x-15,landmark.part(48).y)
+        
+        moo_right=(landmark.part(54).x+15,landmark.part(54).y)
+        moo_top=(landmark.part(29).x,landmark.part(29).y)
+        moo_center=(landmark.part(30).x,landmark.part(30).y)
+        
+        moo_width=int(hypot(moo_left[0]-moo_right[0],
+                        moo_left[1]-moo_right[1]))
+        moo_height=int(moo_width*0.932)
+        
+        
+        
+        x1=int(moo_center[0]-moo_width/2)
+        y1=int(moo_center[1]-moo_height/2)
+        x2=int(moo_center[0]+moo_width/2)
+        y2=int(moo_center[1]+moo_height/2)
+        #cv2.rectangle(frame,(x1,y1),(x2,y2),(0,255,0),1)
+        top_left=(x1,y1)
+        bottom_right=(x2,y2)
+        
+        moo_img=cv2.resize(moo_image,(moo_width,moo_height))
+        moo_gray=cv2.cvtColor(moo_img,cv2.COLOR_BGR2GRAY)
+        _,thres=cv2.threshold(moo_gray,25,255,cv2.THRESH_BINARY_INV)
+
+        moo_area=frame[top_left[1]:top_left[1]+moo_height,top_left[0]:top_left[0]+moo_width]        
+        
+        no_moo=cv2.bitwise_and(moo_area,moo_area,mask=thres)
+        yes_moo=cv2.add(no_moo,moo_img)
+        frame[top_left[1]:top_left[1]+moo_height,top_left[0]:top_left[0]+moo_width]=yes_moo
+                 
+    cv2.imshow('frame',frame)
+    cv2.imshow("n",moo_img)
+    cv2.imshow("mask",thres)
+    cv2.imshow('nose_area',no_moo)
+    #cv2.imshow('yes_moo',yes_moo)
+    key=cv2.waitKey(1)
+    if(key==27):
+        break
+cv2.destroyAllWindows()
+
